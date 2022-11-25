@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -21,7 +22,7 @@ void close_on_sigint(int sig) {
 
 void main() {
     signal(SIGINT, close_on_sigint);
-    char server_message[256] = "You have reached the server!";
+    char server_message[256];
 
     // Create the server socket
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -40,6 +41,10 @@ void main() {
     int client_socket = accept(server_socket, NULL, NULL);
 
     // Send the message
-    while (1)
+    while (1) {
+        printf("Message: ");
+        fgets(server_message, sizeof(server_message), stdin);
+        server_message[strlen(server_message) - 1] = '\0';
         send(client_socket, server_message, sizeof(server_message), 0);
+    }
 }

@@ -41,6 +41,6 @@ void main() {
     char server_response[256];
     while (1) {
         recv(network_socket, &server_response, sizeof(server_response), 0);
-        printf("The server sent the data: %s\n", server_response);
+        printf("Server: %s\n", server_response);
     }
 }
