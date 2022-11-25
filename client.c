@@ -36,13 +36,19 @@ void main() {
     //check for error with the connection
     if (connection_status == -1) {
         printf("There was an error making a connection to the remote socket \n\n");
+        exit(1);
     }
 
     //receive data from the server
     char server_response[256];
     char client_message[256];
     while (1) {
-        recv(network_socket, &server_response, sizeof(server_response), 0);
+        int receive_status = recv(network_socket, &server_response, sizeof(server_response), 0);
+        if (receive_status <= 0) {
+            printf("Server disconnected. Now exiting...\n");
+            exit(0);
+        }
+        printf("Receive status: %d\n", receive_status);
         printf("Server: %s\n", server_response);
         
         printf("Message: ");
