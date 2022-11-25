@@ -32,8 +32,6 @@ void main() {
     server_address.sin_port = htons(9002);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
-    // Catch and handle SIGINT
-
     // Bind the socket to our specified IP and port
     bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address));
 
