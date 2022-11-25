@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -39,8 +40,14 @@ void main() {
 
     //receive data from the server
     char server_response[256];
+    char client_message[256];
     while (1) {
         recv(network_socket, &server_response, sizeof(server_response), 0);
         printf("Server: %s\n", server_response);
+        
+        printf("Message: ");
+        fgets(client_message, sizeof(client_message), stdin);
+        client_message[strlen(client_message) - 1] = '\0';
+        send(network_socket, client_message, sizeof(client_message), 0);
     }
 }
