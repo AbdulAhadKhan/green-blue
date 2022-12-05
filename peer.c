@@ -5,7 +5,7 @@
 #include <getopt.h>
 
 #include "utils/meta.h"
-#include "utils/arg-parser.h"
+#include "utils/initialize.h"
 
 config_t configs;
 
