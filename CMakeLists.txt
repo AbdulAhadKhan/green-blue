@@ -1,4 +1,4 @@
 cmake_minimum_required(VERSION 3.16.3)
 project("green-blue" VERSION 0.0.0)
 file(GLOB_RECURSE SOURCES "utils/*.c")
-add_executable(${PROJECT_NAME} "peer.c" ${SOURCES})
+add_executable(${PROJECT_NAME} "green-blue.c" ${SOURCES})
