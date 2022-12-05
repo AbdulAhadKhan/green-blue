@@ -3,6 +3,6 @@
 
 #include "meta.h"
 
-config_t parse_arguments(int argc, char *argv[]);
+int parse_arguments(int argc, char *argv[], config_t *config);
 
 #endif
