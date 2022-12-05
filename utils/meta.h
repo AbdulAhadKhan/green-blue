@@ -8,4 +8,9 @@ typedef enum {
     CLIENT
 } peer_mode_t;
 
+typedef struct {
+    peer_mode_t mode;
+    port_number_t port_number;
+} config_t;
+
 #endif
