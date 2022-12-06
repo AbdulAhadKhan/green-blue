@@ -13,7 +13,6 @@ socket_fd_t initialize_server(config_t *configs) {
 }
 
 int start_server(int server_socket) {
-    *connection_count_p = 0;
     int connection;
 
     if (listen(server_socket, 5) == 0) {
