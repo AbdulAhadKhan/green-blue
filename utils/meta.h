@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 
 typedef int port_number_t;
+typedef int socket_fd_t;
 
 typedef enum {
     SERVER,
