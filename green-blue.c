@@ -13,5 +13,5 @@ int main(int argc, char *argv[]) {
     socket_fd_t socket_fd = initialize_server(&configs);
 
     printf("Server started on port %d\n", configs.port_number);
-    start_server(socket_fd);
+    start_server(socket_fd, NULL, NULL);
 }
