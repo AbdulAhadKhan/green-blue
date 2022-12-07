@@ -45,6 +45,7 @@ int server_callback(void *args) {
 int server_blue(port_number_t port_number) {
     socket_fd_t server_socket = initialize_server(port_number);
     return server_socket < 0 || start_server(server_socket, server_callback, NULL) < 0 ? -1 : 0;
+
 }
 
 int main(int argc, char *argv[]) {
