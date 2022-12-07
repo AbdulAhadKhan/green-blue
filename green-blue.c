@@ -16,14 +16,14 @@ static struct option long_options[] = {
     {0,         0,                  0,  0}
 };
 
-int parse_arguments(int argc, char *argv[], config_t *configs) {
+int parse_arguments(int argc, char *argv[]) {
     int opt;
 
     while ((opt = getopt_long(argc, argv, "p:cs", long_options, NULL)) != -1) {
         switch (opt) {
-            case 'p': configs->port_number = atoi(optarg); break;
-            case 'c': configs->mode = CLIENT; break;
-            case 's': configs->mode = SERVER; break;
+            case 'p': configs.port_number = atoi(optarg); break;
+            case 'c': configs.mode = CLIENT; break;
+            case 's': configs.mode = SERVER; break;
             default: fprintf(stderr, "Usage: %s [-p port] [-c | -s]\n", argv[0]); return -1;
         }
     }
@@ -32,7 +32,7 @@ int parse_arguments(int argc, char *argv[], config_t *configs) {
 }
 
 int main(int argc, char *argv[]) {
-    parse_arguments(argc, argv, &configs);
+    parse_arguments(argc, argv);
     socket_fd_t socket_fd = initialize_server(configs.port_number);
 
     printf("Starting server on port %d\n", configs.port_number);
