@@ -41,6 +41,12 @@ int log_connection(int *connection) {
     return 0;
 }
 
+/**
+ * @brief Log the server start to stdout
+ * 
+ * @param server_socket 
+ * @return int 
+ */
 int log_server_start(socket_fd_t server_socket) {
     struct sockaddr_in server_address;
     socklen_t server_address_length;
@@ -78,9 +84,9 @@ int connection_fork_handler(socket_fd_t server_socket, int *connection, int (*ca
  * 
  * @return socket_fd_t 
  */
-socket_fd_t initialize_server(config_t *configs) {
+socket_fd_t initialize_server(port_number_t port_number) {
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in server_address = socket_object_init(configs->port_number);
+    struct sockaddr_in server_address = socket_object_init(port_number);
 
     return bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == 0 ? \
         server_socket : errno;
