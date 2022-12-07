@@ -46,7 +46,7 @@ socket_fd_t initialize_server(config_t *configs) {
         server_socket : errno;
 }
 
-int start_server(int server_socket) {
+int start_server(socket_fd_t server_socket) {
     int connection;
 
     if (listen(server_socket, 5) == 0) {
