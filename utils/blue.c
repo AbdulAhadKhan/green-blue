@@ -96,12 +96,13 @@ socket_fd_t initialize_server(port_number_t port_number) {
 int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args) {
     server_socket_p = server_socket;
     signal(SIGINT, close_connection);
-    
-    if (listen(server_socket, 5) == 0) {
-        log_server_start(server_socket);
-        while ((client_connection = accept(server_socket, NULL, NULL)) > 0)
-            fork() == 0 ? connection_fork_handler(server_socket, &client_connection, callback, args) : close(client_connection);
-    }
 
-    return errno;
+    if (listen(server_socket, 5) < 0)perror("listen");
+        return -1;
+        
+    log_server_start(server_socket);
+    while ((client_connection = accept(server_socket, NULL, NULL)) > 0)
+        fork() == 0 ? connection_fork_handler(server_socket, &client_connection, callback, args) : close(client_connection);
+
+    return 0;
 }
