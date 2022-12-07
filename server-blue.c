@@ -23,6 +23,13 @@ int parse_arguments(int argc, char *argv[], config_t *configs) {
     return 0;
 }
 
+int server_blue(port_number_t port_number) {
+    socket_fd_t server_socket = initialize_server(port_number);
+    start_server(server_socket, NULL, NULL);
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
-    printf("Hello, world!\n");
+    parse_arguments(argc, argv, NULL);
+    server_blue(port_number);
 }
