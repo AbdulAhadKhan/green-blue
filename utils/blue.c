@@ -43,13 +43,13 @@ socket_fd_t initialize_server(config_t *configs) {
         server_socket : errno;
 }
 
-int start_server(socket_fd_t server_socket) {
+int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args) {
     int connection;
 
     if (listen(server_socket, 5) == 0) {
         printf("Waiting for connection...\n");
         while ((connection = accept(server_socket, NULL, NULL)) > 0)
-            fork() == 0 ? connection_fork_handler(server_socket, &connection, NULL, NULL) : close(connection);
+            fork() == 0 ? connection_fork_handler(server_socket, &connection, callback, args) : close(connection);
     }
 
     return errno;
