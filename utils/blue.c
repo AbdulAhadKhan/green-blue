@@ -81,7 +81,7 @@ socket_fd_t initialize_server(port_number_t port_number) {
     struct sockaddr_in server_address = socket_object_init(port_number);
 
     return bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == 0 ? \
-        server_socket : errno;
+        server_socket : -1;
 }
 
 /**
