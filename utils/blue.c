@@ -1,11 +1,14 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <signal.h>
 
 #include "blue.h"
 #include "meta.h"
 #include "socket-object.h"
 #include "ANSI-colors.h"
+
+socket_fd_t server_socket_p;
 
 /**
  * @brief Get the current time as string
@@ -77,6 +80,12 @@ int connection_fork_handler(socket_fd_t server_socket, int *connection, int (*ca
     exit(0);
 }
 
+void close_connection(int signum) {
+    close(server_socket_p);
+    printf("%s[%s]%s Server closed\n", ANSI_COLOR_RED, get_current_time_as_string(), ANSI_COLOR_RESET);
+    exit(0);
+}
+
 /**
  * @brief Initialize the server
  * 
@@ -102,6 +111,10 @@ socket_fd_t initialize_server(port_number_t port_number) {
  */
 int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args) {
     int connection;
+
+    server_socket_p = server_socket;
+    signal(SIGINT, close_connection);
+    
     if (listen(server_socket, 5) == 0) {
         log_server_start(server_socket);
         while ((connection = accept(server_socket, NULL, NULL)) > 0)
