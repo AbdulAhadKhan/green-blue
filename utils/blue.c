@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <string.h>
 
 #include "blue.h"
 #include "meta.h"
@@ -74,7 +75,7 @@ void close_connection(int signum) {
  * @brief Initialize the server
  * 
  * @param port_number 
- * @return socket_fd_t 
+ * @return socket_fd_t
  */
 socket_fd_t initialize_server(port_number_t port_number) {
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -96,13 +97,13 @@ socket_fd_t initialize_server(port_number_t port_number) {
 int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args) {
     server_socket_p = server_socket;
     signal(SIGINT, close_connection);
-
-    if (listen(server_socket, 5) < 0)perror("listen");
+    
+    if (listen(server_socket, 5) < 0)
         return -1;
-        
+    
     log_server_start(server_socket);
     while ((client_connection = accept(server_socket, NULL, NULL)) > 0)
         fork() == 0 ? connection_fork_handler(server_socket, &client_connection, callback, args) : close(client_connection);
-
+        
     return 0;
 }

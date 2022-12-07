@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <string.h>
 
 #include "utils/utils.h"
 #include "utils/server-blue.h"
@@ -43,13 +44,13 @@ int server_callback(void *args) {
 
 int server_blue(port_number_t port_number) {
     socket_fd_t server_socket = initialize_server(port_number);
-    return server_socket < 0 || start_server(server_socket, server_callback, NULL) ? -1 : 0;
+    return server_socket < 0 || start_server(server_socket, server_callback, NULL) < 0 ? -1 : 0;
 }
 
 int main(int argc, char *argv[]) {
     parse_arguments(argc, argv);
-    if (server_blue(port_number) < 0) {
-        perror("Server Blue");
-        return -1;
-    }
+    if (server_blue(port_number) > -1)
+        return 0;
+    fprintf(stderr, "Error: %s\n", strerror(errno));
+    return -1;
 }
