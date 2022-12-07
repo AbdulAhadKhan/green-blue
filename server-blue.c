@@ -43,11 +43,13 @@ int server_callback(void *args) {
 
 int server_blue(port_number_t port_number) {
     socket_fd_t server_socket = initialize_server(port_number);
-    start_server(server_socket, server_callback, NULL);
-    return 0;
+    return server_socket < 0 || start_server(server_socket, server_callback, NULL) ? -1 : 0;
 }
 
 int main(int argc, char *argv[]) {
     parse_arguments(argc, argv);
-    server_blue(port_number);
+    if (server_blue(port_number) < 0) {
+        perror("Server Blue");
+        return -1;
+    }
 }
