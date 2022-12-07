@@ -104,6 +104,6 @@ int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args)
     log_server_start(server_socket);
     while ((client_connection = accept(server_socket, NULL, NULL)) > 0)
         fork() == 0 ? connection_fork_handler(server_socket, &client_connection, callback, args) : close(client_connection);
-        
+    
     return 0;
 }
