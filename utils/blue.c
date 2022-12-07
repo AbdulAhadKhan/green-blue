@@ -34,7 +34,7 @@ char * get_current_time_as_string() {
  */
 int log_connection(int *connection) {
     struct sockaddr_in client_address;
-    socklen_t client_address_length;
+    socklen_t client_address_length = sizeof(client_address);
     
     getpeername(*connection, (struct sockaddr *) &client_address, &client_address_length);
     printf("%s[%s]%s Connection established with %s:%d\n",
@@ -52,12 +52,11 @@ int log_connection(int *connection) {
  */
 int log_server_start(socket_fd_t server_socket) {
     struct sockaddr_in server_address;
-    socklen_t server_address_length;
+    socklen_t server_address_length = sizeof(server_address);
 
     getsockname(server_socket, (struct sockaddr *) &server_address, &server_address_length);
-    printf("%s[%s]%s Server started on port %d\n",
-           ANSI_COLOR_GREEN, get_current_time_as_string(), ANSI_COLOR_RESET, 
-           ntohs(server_address.sin_port));
+    printf("%s[%s]%s Server started on port: %d\n",
+           ANSI_COLOR_GREEN, get_current_time_as_string(), ANSI_COLOR_RESET,  ntohs(server_address.sin_port));
 
     return 0;
 }
