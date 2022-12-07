@@ -51,9 +51,8 @@ int start_server(socket_fd_t server_socket) {
 
     if (listen(server_socket, 5) == 0) {
         printf("Waiting for connection...\n");
-        while ((connection = accept(server_socket, NULL, NULL)) > 0) {
+        while ((connection = accept(server_socket, NULL, NULL)) > 0)
             fork() == 0 ? connection_fork_handler(server_socket, &connection) : close(connection);
-        }
     }
 
     return errno;
