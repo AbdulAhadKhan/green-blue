@@ -97,7 +97,7 @@ socket_fd_t initialize_server(port_number_t port_number) {
 int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args) {
     server_socket_p = server_socket;
     signal(SIGINT, close_connection);
-  
+    
     if (listen(server_socket, 5) < 0)
         return -1;
     
