@@ -80,8 +80,7 @@ int connection_fork_handler(socket_fd_t server_socket, int *connection, int (*ca
 /**
  * @brief Initialize the server
  * 
- * @param configs: configurations (config_t *)
- * 
+ * @param port_number 
  * @return socket_fd_t 
  */
 socket_fd_t initialize_server(port_number_t port_number) {
