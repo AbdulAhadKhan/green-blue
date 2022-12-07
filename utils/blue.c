@@ -1,29 +1,14 @@
 #include <errno.h>
 #include <arpa/inet.h>
-#include <time.h>
 #include <signal.h>
 
 #include "blue.h"
 #include "meta.h"
+#include "utils.h"
 #include "socket-object.h"
 #include "ANSI-colors.h"
 
 socket_fd_t server_socket_p;
-
-/**
- * @brief Get the current time as string
- * 
- * @return char* 
- */
-char * get_current_time_as_string() {
-    time_t current_time;
-    char *date_time_string = malloc(100);
-
-    time(&current_time);
-    strftime(date_time_string, 100, "%Y-%m-%d %H:%M:%S", localtime(&current_time));
-
-    return date_time_string;
-}
 
 /**
  * @brief Log the connection to stdout
@@ -109,15 +94,13 @@ socket_fd_t initialize_server(port_number_t port_number) {
  * @return int 
  */
 int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args) {
-    int connection;
-
     server_socket_p = server_socket;
     signal(SIGINT, close_connection);
     
     if (listen(server_socket, 5) == 0) {
         log_server_start(server_socket);
-        while ((connection = accept(server_socket, NULL, NULL)) > 0)
-            fork() == 0 ? connection_fork_handler(server_socket, &connection, callback, args) : close(connection);
+        while ((client_connection = accept(server_socket, NULL, NULL)) > 0)
+            fork() == 0 ? connection_fork_handler(server_socket, &client_connection, callback, args) : close(client_connection);
     }
 
     return errno;
