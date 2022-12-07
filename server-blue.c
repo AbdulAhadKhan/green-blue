@@ -10,7 +10,7 @@ static struct option long_options[] = {
     {0,         0,                  0,  0}
 };
 
-int parse_arguments(int argc, char *argv[], config_t *configs) {
+int parse_arguments(int argc, char *argv[]) {
     int opt;
 
     while ((opt = getopt_long(argc, argv, "p:cs", long_options, NULL)) != -1) {
@@ -30,6 +30,6 @@ int server_blue(port_number_t port_number) {
 }
 
 int main(int argc, char *argv[]) {
-    parse_arguments(argc, argv, NULL);
+    parse_arguments(argc, argv);
     server_blue(port_number);
 }
