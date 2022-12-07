@@ -41,6 +41,18 @@ int log_connection(int *connection) {
     return 0;
 }
 
+int log_server_start(socket_fd_t server_socket) {
+    struct sockaddr_in server_address;
+    socklen_t server_address_length;
+
+    getsockname(server_socket, (struct sockaddr *) &server_address, &server_address_length);
+    printf("%s[%s]%s Server started on port %d\n",
+           ANSI_COLOR_GREEN, get_current_time_as_string(), ANSI_COLOR_RESET, 
+           ntohs(server_address.sin_port));
+
+    return 0;
+}
+
 /**
  * @brief Handle the connection fork
  * 
@@ -85,9 +97,8 @@ socket_fd_t initialize_server(config_t *configs) {
  */
 int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args) {
     int connection;
-
     if (listen(server_socket, 5) == 0) {
-        printf("Waiting for connection...\n");
+        log_server_start(server_socket);
         while ((connection = accept(server_socket, NULL, NULL)) > 0)
             fork() == 0 ? connection_fork_handler(server_socket, &connection, callback, args) : close(connection);
     }
