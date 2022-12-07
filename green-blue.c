@@ -10,7 +10,7 @@ config_t configs = {
 
 int main(int argc, char *argv[]) {
     parse_arguments(argc, argv, &configs);
-    socket_fd_t socket_fd = initialize_server(&configs);
+    socket_fd_t socket_fd = initialize_server(configs.port_number);
 
     printf("Starting server on port %d\n", configs.port_number);
     start_server(socket_fd, NULL, NULL);
