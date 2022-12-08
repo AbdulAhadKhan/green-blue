@@ -39,20 +39,30 @@ int parse_arguments(int argc, char *argv[], struct config *config) {
     return 0;
 }
 
+int start_blue_servers(struct config *config) {
+    printf("Starting %d server blues\n", config->number_of_servers);
+
+    for (int i = 0; i < config->number_of_servers; i++) {
+        config->servers[i].port_number = config->starting_port_number + i;
+        config->servers[i].socket = initialize_server(config->servers[i].port_number);
+        config->servers[i].number_of_clients = 0;
+        if (fork() == 0)
+            return config->servers[i].socket < 0 || \
+                   start_server(config->servers[i].socket, NULL, NULL) < 0 ? -1 : 0;
+    }
+
+    return 0;
+}
+
 int forward_request(socket_fd_t *server_socket, port_number_t port_number, char *request, int *number_of_clients) {
     char message[1024];
     socket_fd_t client_socket = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in server_address = socket_object_init(port_number);
-    (*number_of_clients)++;
-    printf("Number of clients: %d\n", *number_of_clients);
     connect(client_socket, (struct sockaddr *) &server_address, sizeof(server_address));
-    send(client_socket, request, strlen(request), 0);
-    (*number_of_clients)--;
-    printf("Number of clients: %d\n", *number_of_clients);
     return 0;
 }
 
-int captain_callback(void *args) {
+int captains_callback(void *args) {
     struct config *config = (struct config *) args;
     printf("Captain Callback\n");
 
@@ -70,24 +80,14 @@ int captain_callback(void *args) {
 
 int server(struct config *config) {
     socket_fd_t socket_fd = initialize_server(config->load_balancer_port_number);
-    return socket_fd < 0 || start_server(socket_fd, captain_callback, config) < 0 ? -1 : 0;
+    return socket_fd < 0 || start_server(socket_fd, captains_callback, config) < 0 ? -1 : 0;
 }
 
 int captain_balancer(struct config *config) {
     pid_t pid;
-
     if ((pid = fork()) == 0)
         return server(config);
-    
-    for (int i = 0; i < config->number_of_servers; i++) {
-        config->servers[i].port_number = config->starting_port_number + i;
-        config->servers[i].socket = initialize_server(config->servers[i].port_number);
-        config->servers[i].number_of_clients = 0;
-        if ((pid = fork()) == 0)
-            return config->servers[i].socket < 0 || \
-                   start_server(config->servers[i].socket, NULL, NULL) < 0 ? -1 : 0;
-    }
-    
+    start_blue_servers(config);
     waitpid(pid, NULL, 0);
     return 0;
 }
