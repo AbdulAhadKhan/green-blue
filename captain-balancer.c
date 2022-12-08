@@ -1,14 +1,17 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
+#include <limits.h>
 
+#include "utils/utils.h"
 #include "utils/meta.h"
 #include "utils/server-blue.h"
+#include "utils/ANSI-colors.h"
 
 struct server {
     port_number_t port_number;
     socket_fd_t socket;
-    int *shared_connection_count;
+    int connection_count;
 };
 
 struct config {
@@ -52,19 +55,21 @@ int start_blue_servers(struct config *config) {
     for (int i = 0; i < config->number_of_servers; i++) {
         config->servers[i].port_number = config->starting_port_number + i;
         config->servers[i].socket = initialize_server(config->servers[i].port_number);
-        config->servers[i].shared_connection_count = 0;
+        config->servers[i].connection_count = 0;
         if (fork() == 0)
             return config->servers[i].socket < 0 || \
                    start_server(config->servers[i].socket, NULL, NULL) < 0 ? -1 : 0;
     }
 
-    perror("Server Blue");
-
     return 0;
 }
 
-int forward_request(socket_fd_t *server_socket, port_number_t port_number, char *request, int *shared_connection_count) {
-    printf("Forwarding request to server on port %d\n", port_number);
+int forward_request(struct server *server, char *client_message) {
+    (*server).connection_count++;
+    printf("%s[%s]%s %s[PORT %d]%s Server Connection Count: %d\n",
+        ANSI_COLOR_GREEN, get_current_time_as_string(), ANSI_COLOR_RESET,
+        ANSI_COLOR_YELLOW, server->port_number, ANSI_COLOR_RESET,
+        server->connection_count);
 
     return 0;
 }
@@ -72,18 +77,18 @@ int forward_request(socket_fd_t *server_socket, port_number_t port_number, char 
 int below_threshold(struct config *config, int threshold) {
     int connection_count;
     for (int i = 0; i < config->number_of_servers; i++)
-        if (*((int *) config->servers[i].shared_connection_count) < threshold)
+        if (config->servers[i].connection_count < threshold)
             return i;
     return -1;
 }
 
 int round_robin(struct config *config) {
-    int lowest_load = 0;
+    int lowest_load = INT_MAX;
     int lowest_load_index = 0;
     int current_load;
 
     for (int i = 0; i < config->number_of_servers; i++) {
-        current_load = *((int *) config->servers[i].shared_connection_count);
+        current_load = config->servers[i].connection_count;
         if (current_load < lowest_load) {
             lowest_load = current_load;
             lowest_load_index = i;
@@ -94,24 +99,19 @@ int round_robin(struct config *config) {
 }
 
 int captains_callback(void *args) {
+    struct config *config = (struct config *) args;
     char client_message[1024];
     int elected_server;
 
-    if (((struct config *) args)->number_of_servers <= 0) {
+    if (config->number_of_servers <= 0) {
         send(client_connection, "No servers available", 20, 0);
         return -1;
     }
 
-    // if ((elected_server = below_threshold(config, 5)) < 0)
-    //     elected_server = round_robin(config);
+    if ((elected_server = below_threshold(config, 5)) < 0)
+        elected_server = round_robin(config);
     
-    port_number_t elected_port = ((struct config *) args)->servers[0].port_number;
-
-    printf("Elected server port: %d\n", elected_port);
-
-    // forward_request(&config->servers[elected_server].socket, \
-    //                 config->servers[elected_server].port_number, \
-    //                 client_message, config->servers[elected_server].shared_connection_count);
+    forward_request(&config->servers[elected_server], client_message);
 
      return -1;
 }
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
     int protection = PROT_READ | PROT_WRITE;
     int visibility = MAP_SHARED | MAP_ANONYMOUS;
     struct server *servers = mmap(NULL, sizeof(struct server) * config->number_of_servers, protection, visibility, -1, 0);
-    
+
     config->servers = servers;
     captain_balancer(config);
 }
