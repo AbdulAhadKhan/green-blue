@@ -1,5 +1,6 @@
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
 
 #include "utils/meta.h"
 #include "utils/server-blue.h"
@@ -7,7 +8,7 @@
 struct server {
     port_number_t port_number;
     socket_fd_t socket;
-    int number_of_clients;
+    int *shared_connection_count;
 };
 
 struct config {
@@ -39,36 +40,39 @@ int parse_arguments(int argc, char *argv[], struct config *config) {
     return 0;
 }
 
+struct config * create_shared_memory() {
+    int protection = PROT_READ | PROT_WRITE;
+    int visibility = MAP_SHARED | MAP_ANONYMOUS;
+    return mmap(NULL, sizeof(struct config), protection, visibility, -1, 0);
+}
+
 int start_blue_servers(struct config *config) {
     printf("Starting %d server blues\n", config->number_of_servers);
 
     for (int i = 0; i < config->number_of_servers; i++) {
         config->servers[i].port_number = config->starting_port_number + i;
         config->servers[i].socket = initialize_server(config->servers[i].port_number);
-        config->servers[i].number_of_clients = 0;
+        config->servers[i].shared_connection_count = 0;
         if (fork() == 0)
             return config->servers[i].socket < 0 || \
                    start_server(config->servers[i].socket, NULL, NULL) < 0 ? -1 : 0;
     }
 
+    perror("Server Blue");
+
     return 0;
 }
 
-int forward_request(socket_fd_t *server_socket, port_number_t port_number, char *request, int *number_of_clients) {
-    (*number_of_clients)++;
-    while (recv(client_connection, NULL, 1, MSG_PEEK | MSG_DONTWAIT ) != 0) {
-        printf("Number of clients: %d\n", *number_of_clients);
-        sleep(30);
-    }
+int forward_request(socket_fd_t *server_socket, port_number_t port_number, char *request, int *shared_connection_count) {
+    printf("Forwarding request to server on port %d\n", port_number);
 
-    (*number_of_clients)--;
-    printf("Number of clients: %d\n", *number_of_clients);
     return 0;
 }
 
 int below_threshold(struct config *config, int threshold) {
+    int connection_count;
     for (int i = 0; i < config->number_of_servers; i++)
-        if (config->servers[i].number_of_clients < threshold)
+        if (*((int *) config->servers[i].shared_connection_count) < threshold)
             return i;
     return -1;
 }
@@ -76,10 +80,12 @@ int below_threshold(struct config *config, int threshold) {
 int round_robin(struct config *config) {
     int lowest_load = 0;
     int lowest_load_index = 0;
+    int current_load;
 
     for (int i = 0; i < config->number_of_servers; i++) {
-        if (config->servers[i].number_of_clients < lowest_load) {
-            lowest_load = config->servers[i].number_of_clients;
+        current_load = *((int *) config->servers[i].shared_connection_count);
+        if (current_load < lowest_load) {
+            lowest_load = current_load;
             lowest_load_index = i;
         }
     }
@@ -89,15 +95,23 @@ int round_robin(struct config *config) {
 
 int captains_callback(void *args) {
     char client_message[1024];
-    struct config *config = (struct config *) args;
     int elected_server;
 
-    if ((elected_server = below_threshold(config, 5)) < 0)
-        elected_server = round_robin(config);
+    if (((struct config *) args)->number_of_servers <= 0) {
+        send(client_connection, "No servers available", 20, 0);
+        return -1;
+    }
 
-    forward_request(&config->servers[elected_server].socket, \
-                    config->servers[elected_server].port_number, \
-                    client_message, &config->servers[elected_server].number_of_clients);
+    // if ((elected_server = below_threshold(config, 5)) < 0)
+    //     elected_server = round_robin(config);
+    
+    port_number_t elected_port = ((struct config *) args)->servers[0].port_number;
+
+    printf("Elected server port: %d\n", elected_port);
+
+    // forward_request(&config->servers[elected_server].socket, \
+    //                 config->servers[elected_server].port_number, \
+    //                 client_message, config->servers[elected_server].shared_connection_count);
 
      return -1;
 }
@@ -117,9 +131,14 @@ int captain_balancer(struct config *config) {
 }
 
 int main(int argc, char *argv[]) {
-    struct config config = { 2000, 3000, 1, NULL };
-    parse_arguments(argc, argv, &config);
-    config.servers = (struct server *) malloc(config.number_of_servers * sizeof(struct server));
-    captain_balancer(&config);
-    free(config.servers);
+    struct config *config = create_shared_memory();
+    *config = (struct config) { 2000, 3000, 1, NULL };
+    parse_arguments(argc, argv, config);
+
+    int protection = PROT_READ | PROT_WRITE;
+    int visibility = MAP_SHARED | MAP_ANONYMOUS;
+    struct server *servers = mmap(NULL, sizeof(struct server) * config->number_of_servers, protection, visibility, -1, 0);
+    
+    config->servers = servers;
+    captain_balancer(config);
 }
