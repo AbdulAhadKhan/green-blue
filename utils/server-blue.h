@@ -7,5 +7,6 @@
 #include "blue.h"
 
 int server_blue(port_number_t port_number);
+int server_blue_callback(void *args);
 
 #endif
