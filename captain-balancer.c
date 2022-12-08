@@ -63,8 +63,14 @@ int forward_request(socket_fd_t *server_socket, port_number_t port_number, char 
 }
 
 int captains_callback(void *args) {
+    char client_message[1024];
     struct config *config = (struct config *) args;
-    printf("Captain Callback\n");
+
+    // while (recv(client_connection, NULL, 1, MSG_PEEK | MSG_DONTWAIT ) != 0) {
+    //     printf("AND IIIIIIIIII.... I'M FALLINGG IN LOVEEEEEE\n");
+    // }
+
+    // printf("Whatever\n");
 
     for (int i = 0; i < config->number_of_servers; i++) {
         if (config->servers[i].number_of_clients < 5) {
