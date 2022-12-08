@@ -55,33 +55,51 @@ int start_blue_servers(struct config *config) {
 }
 
 int forward_request(socket_fd_t *server_socket, port_number_t port_number, char *request, int *number_of_clients) {
-    char message[1024];
-    socket_fd_t client_socket = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in server_address = socket_object_init(port_number);
-    connect(client_socket, (struct sockaddr *) &server_address, sizeof(server_address));
+    (*number_of_clients)++;
+    while (recv(client_connection, NULL, 1, MSG_PEEK | MSG_DONTWAIT ) != 0) {
+        printf("Number of clients: %d\n", *number_of_clients);
+        sleep(30);
+    }
+
+    (*number_of_clients)--;
+    printf("Number of clients: %d\n", *number_of_clients);
     return 0;
+}
+
+int below_threshold(struct config *config, int threshold) {
+    for (int i = 0; i < config->number_of_servers; i++)
+        if (config->servers[i].number_of_clients < threshold)
+            return i;
+    return -1;
+}
+
+int round_robin(struct config *config) {
+    int lowest_load = 0;
+    int lowest_load_index = 0;
+
+    for (int i = 0; i < config->number_of_servers; i++) {
+        if (config->servers[i].number_of_clients < lowest_load) {
+            lowest_load = config->servers[i].number_of_clients;
+            lowest_load_index = i;
+        }
+    }
+
+    return lowest_load_index;
 }
 
 int captains_callback(void *args) {
     char client_message[1024];
     struct config *config = (struct config *) args;
+    int elected_server;
 
-    // while (recv(client_connection, NULL, 1, MSG_PEEK | MSG_DONTWAIT ) != 0) {
-    //     printf("AND IIIIIIIIII.... I'M FALLINGG IN LOVEEEEEE\n");
-    // }
+    if ((elected_server = below_threshold(config, 5)) < 0)
+        elected_server = round_robin(config);
 
-    // printf("Whatever\n");
+    forward_request(&config->servers[elected_server].socket, \
+                    config->servers[elected_server].port_number, \
+                    client_message, &config->servers[elected_server].number_of_clients);
 
-    for (int i = 0; i < config->number_of_servers; i++) {
-        if (config->servers[i].number_of_clients < 5) {
-            printf("Forwarding request to server %d\n", i);
-            forward_request(&config->servers[i].socket, config->servers[i].port_number, \
-                            "Hello", &config->servers[i].number_of_clients);
-            break;
-        }
-    }
-    
-    return 0;
+     return -1;
 }
 
 int server(struct config *config) {
