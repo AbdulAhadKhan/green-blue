@@ -2,11 +2,16 @@
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <limits.h>
+#include <pthread.h>
 
 #include "utils/utils.h"
 #include "utils/meta.h"
 #include "utils/server-blue.h"
 #include "utils/ANSI-colors.h"
+
+#define MESSAGE_SIZE 2048
+
+status_t *status;
 
 struct server {
     port_number_t port_number;
@@ -43,14 +48,39 @@ int parse_arguments(int argc, char *argv[], struct config *config) {
     return 0;
 }
 
+void * check_connection_thread(void *args) {
+    socket_fd_t connection = *(socket_fd_t *) args;
+    
+    while (recv(connection, NULL, 0, MSG_PEEK | MSG_DONTWAIT) != 0) {
+        sleep(1);
+    }
+
+    *status = DISCONNECTED;
+
+    return NULL;
+}
+
 struct config * create_shared_memory() {
     int protection = PROT_READ | PROT_WRITE;
     int visibility = MAP_SHARED | MAP_ANONYMOUS;
     return mmap(NULL, sizeof(struct config), protection, visibility, -1, 0);
 }
 
+int server_blues_callback(void *args) {
+    char client_message[MESSAGE_SIZE];
+
+    printf("I'm waiting for a message from the client\n");
+
+    recv(client_connection, client_message, MESSAGE_SIZE, 0);
+    printf("%s\n", client_message);
+
+    return 0;
+}
+
 int start_blue_servers(struct config *config) {
-    printf("Starting %d server blues\n", config->number_of_servers);
+    printf("%s[%s]%s Starting %d server blues\n", 
+    ANSI_COLOR_CYAN, get_current_time_as_string(), ANSI_COLOR_RESET,
+    config->number_of_servers);
 
     for (int i = 0; i < config->number_of_servers; i++) {
         config->servers[i].port_number = config->starting_port_number + i;
@@ -58,20 +88,36 @@ int start_blue_servers(struct config *config) {
         config->servers[i].connection_count = 0;
         if (fork() == 0)
             return config->servers[i].socket < 0 || \
-                   start_server(config->servers[i].socket, NULL, NULL) < 0 ? -1 : 0;
+                   start_server(config->servers[i].socket, server_blues_callback, NULL) < 0 ? -1 : 0;
     }
 
     return 0;
 }
 
-int forward_request(struct server *server, char *client_message) {
+socket_fd_t get_elected_server(struct server *server, char *client_message) {
+    struct timeval timeout = { 2, 0 };
+    
+    socket_fd_t socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in server_address = { AF_INET, htons(server->port_number), { INADDR_ANY } };
+
+    socket_fd_t blue_server_connection = connect(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address));
+    setsockopt(blue_server_connection, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout, sizeof(timeout));
+    
+    if (blue_server_connection < 0) {
+        printf("%s[%s]%s %s[PORT %d]%s Server Connection Failed\n",
+            ANSI_COLOR_RED, get_current_time_as_string(), ANSI_COLOR_RESET,
+            ANSI_COLOR_YELLOW, server->port_number, ANSI_COLOR_RESET);
+        return -1;
+    }
+    
     (*server).connection_count++;
+    
     printf("%s[%s]%s %s[PORT %d]%s Server Connection Count: %d\n",
         ANSI_COLOR_GREEN, get_current_time_as_string(), ANSI_COLOR_RESET,
         ANSI_COLOR_YELLOW, server->port_number, ANSI_COLOR_RESET,
         server->connection_count);
 
-    return 0;
+    return blue_server_connection;
 }
 
 int below_threshold(struct config *config, int threshold) {
@@ -99,9 +145,18 @@ int round_robin(struct config *config) {
 }
 
 int captains_callback(void *args) {
-    struct config *config = (struct config *) args;
-    char client_message[1024];
     int elected_server;
+    char message[2048];
+
+    int protection = PROT_READ | PROT_WRITE;
+    int visibility = MAP_SHARED | MAP_ANONYMOUS;
+
+    struct config *config = (struct config *) args;
+    status = mmap(NULL, sizeof(status_t), protection, visibility, -1, 0);
+
+    pthread_t check_connection_thread_id;
+
+    *status = CONNECTED;
 
     if (config->number_of_servers <= 0) {
         send(client_connection, "No servers available", 20, 0);
@@ -111,7 +166,28 @@ int captains_callback(void *args) {
     if ((elected_server = below_threshold(config, 5)) < 0)
         elected_server = round_robin(config);
     
-    forward_request(&config->servers[elected_server], client_message);
+    socket_fd_t blue_server = get_elected_server(&config->servers[elected_server], message);
+
+    printf("Connected client %d\n", client_connection);
+    pthread_create(&check_connection_thread_id, NULL, check_connection_thread, &client_connection);
+
+    while (*status == CONNECTED) {
+        if (recv(client_connection, message, MESSAGE_SIZE, 0) > 0) {
+            printf("Received message from client: %s\n", message);
+            // send(blue_server, message, MESSAGE_SIZE, 0);
+            // recv(blue_server, message, MESSAGE_SIZE, 0);
+            send(client_connection, message, MESSAGE_SIZE, 0);
+        }
+    }
+
+    close(config->servers[elected_server].socket);
+    // Decrease connection count
+    config->servers[elected_server].connection_count--;
+
+    printf("%s[%s]%s %s[PORT %d]%s Client disconnected. Connection count: %d\n",
+        ANSI_COLOR_RED, get_current_time_as_string(), ANSI_COLOR_RESET,
+        ANSI_COLOR_YELLOW, config->servers[elected_server].port_number, ANSI_COLOR_RESET,
+        config->servers[elected_server].connection_count);
 
      return -1;
 }
