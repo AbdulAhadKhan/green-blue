@@ -74,6 +74,8 @@ int server_blues_callback(void *args) {
     recv(client_connection, client_message, MESSAGE_SIZE, 0);
     printf("%s\n", client_message);
 
+    send(client_connection, "I got your message", 18, 0);
+
     return 0;
 }
 
@@ -166,16 +168,22 @@ int captains_callback(void *args) {
     if ((elected_server = below_threshold(config, 5)) < 0)
         elected_server = round_robin(config);
     
-    socket_fd_t blue_server = get_elected_server(&config->servers[elected_server], message);
-
-    printf("Connected client %d\n", client_connection);
     pthread_create(&check_connection_thread_id, NULL, check_connection_thread, &client_connection);
+
+    int network_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    struct sockaddr_in server_address;
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(config->servers[elected_server].port_number);
+    server_address.sin_addr.s_addr = INADDR_ANY;
+
+    connect(network_socket, (struct sockaddr *) &server_address, sizeof(server_address));
 
     while (*status == CONNECTED) {
         if (recv(client_connection, message, MESSAGE_SIZE, 0) > 0) {
             printf("Received message from client: %s\n", message);
-            // send(blue_server, message, MESSAGE_SIZE, 0);
-            // recv(blue_server, message, MESSAGE_SIZE, 0);
+            send(network_socket, message, MESSAGE_SIZE, 0);
+            recv(network_socket, message, MESSAGE_SIZE, 0);
             send(client_connection, message, MESSAGE_SIZE, 0);
         }
     }
