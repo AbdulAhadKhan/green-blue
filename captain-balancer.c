@@ -3,6 +3,7 @@
 #include <sys/mman.h>
 #include <limits.h>
 #include <pthread.h>
+#include <sys/sendfile.h>
 
 #include "utils/utils.h"
 #include "utils/meta.h"
@@ -67,14 +68,16 @@ struct config * create_shared_memory() {
 }
 
 int server_blues_callback(void *args) {
+    int read_size;
     char client_message[MESSAGE_SIZE];
 
     printf("I'm waiting for a message from the client\n");
 
-    recv(client_connection, client_message, MESSAGE_SIZE, 0);
-    printf("%s\n", client_message);
-
-    send(client_connection, "I got your message", 18, 0);
+    while (1) {
+        if ((read_size = recv(client_connection, client_message, MESSAGE_SIZE, 0)) > 0) {
+            send(client_connection, "Got it!", read_size, 0);
+        }
+    }
 
     return 0;
 }
@@ -148,7 +151,8 @@ int round_robin(struct config *config) {
 
 int captains_callback(void *args) {
     int elected_server;
-    char message[2048];
+    char message[MESSAGE_SIZE];
+    int read_size;
 
     int protection = PROT_READ | PROT_WRITE;
     int visibility = MAP_SHARED | MAP_ANONYMOUS;
@@ -180,11 +184,10 @@ int captains_callback(void *args) {
     connect(network_socket, (struct sockaddr *) &server_address, sizeof(server_address));
 
     while (*status == CONNECTED) {
-        if (recv(client_connection, message, MESSAGE_SIZE, 0) > 0) {
-            printf("Received message from client: %s\n", message);
-            send(network_socket, message, MESSAGE_SIZE, 0);
-            recv(network_socket, message, MESSAGE_SIZE, 0);
-            send(client_connection, message, MESSAGE_SIZE, 0);
+        if ((read_size = recv(client_connection, message, MESSAGE_SIZE, 0)) > 0) {
+            send(network_socket, message, read_size, 0);
+            read_size = recv(network_socket, message, MESSAGE_SIZE, 0);
+            send(client_connection, message, read_size, 0);
         }
     }
 
