@@ -9,8 +9,6 @@
 #include "utils/server-blue.h"
 #include "utils/ANSI-colors.h"
 
-#define MESSAGE_SIZE 2048
-
 status_t *status;
 
 struct server {
