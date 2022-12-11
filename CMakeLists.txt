@@ -8,7 +8,8 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 add_executable(${PROJECT_NAME} "green-blue.c" ${SOURCES})
-# add_executable("server-blue" "server-blue.c" ${SOURCES})
 add_executable("captain-balancer" "captain-balancer.c" ${SOURCES})
+add_executable("green-client" "green-client.c" ${SOURCES})
 
 target_link_libraries("captain-balancer" Threads::Threads)
+target_link_libraries("green-client" Threads::Threads)

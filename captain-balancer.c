@@ -3,7 +3,6 @@
 #include <sys/mman.h>
 #include <limits.h>
 #include <pthread.h>
-#include <sys/sendfile.h>
 
 #include "utils/utils.h"
 #include "utils/meta.h"

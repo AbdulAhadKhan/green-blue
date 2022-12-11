@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
+#define MESSAGE_SIZE 2048
+
 typedef int port_number_t;
 typedef int socket_fd_t;
 
