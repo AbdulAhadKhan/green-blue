@@ -81,21 +81,6 @@ void close_connection(int signum) {
 }
 
 /**
- * @brief Initialize the server socket and bind it to the port number
- * 
- * @param port_number 
- * @return socket_fd_t
- */
-socket_fd_t initialize_server(port_number_t port_number) {
-    server_socket_p = port_number;
-    int server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in server_address = socket_object_init(port_number);
-
-    return bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == 0 ? \
-        server_socket : -1;
-}
-
-/**
  * @brief Start the server and listen for connections.
  * Every connection is handled in a fork.
  * 
@@ -116,4 +101,19 @@ int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args)
         fork() == 0 ? connection_fork_handler(server_socket, &client_connection, callback, args) : close(client_connection);
     
     return 0;
+}
+
+/**
+ * @brief Initialize the server socket and bind it to the port number
+ * 
+ * @param port_number 
+ * @return socket_fd_t
+ */
+socket_fd_t initialize_server(port_number_t port_number) {
+    server_socket_p = port_number;
+    int server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in server_address = socket_object_init(port_number);
+
+    return bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == 0 ? \
+        server_socket : -1;
 }
