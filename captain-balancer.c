@@ -91,8 +91,8 @@ int start_blue_servers(struct config *config) {
         config->servers[i].port_number = config->starting_port_number + i;
         config->servers[i].socket = initialize_server(config->servers[i].port_number);
         config->servers[i].connection_count = 0;
-        if (fork() == 0)
-            server_blue(config->servers[i].socket, config->servers[i].socket);
+        if (fork() == 0) 
+            server_blue(config->servers[i].socket);
     }
 
     return 0;
