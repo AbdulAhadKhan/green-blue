@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <string.h>
 
 #include <pthread.h>
 #include <sys/mman.h>
@@ -73,6 +74,12 @@ int green_client() {
         while (1) {
             printf("Message: ");
             fgets(message, sizeof(message), stdin);
+            if (strcmp(message, "quit\n") == 0) {
+                printf("%s[-]%s Disconnecting from server: %s:%d\n", 
+                       ANSI_COLOR_RED, ANSI_COLOR_RESET, configs.address, configs.server_port);
+                close(network_socket);
+                exit(0);
+            }
             send(network_socket, message, sizeof(message), 0);
             read_size = recv(network_socket, &buffer, sizeof(buffer), 0);
             buffer[read_size] = '\0';
