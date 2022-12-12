@@ -182,8 +182,20 @@ int captains_callback(void *args) {
     server_address.sin_port = htons(config->servers[elected_server].port_number);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
-    connect(network_socket, (struct sockaddr *) &server_address, sizeof(server_address));
+    if (connect(network_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0) {
+        printf("%s[%s]%s %s[PORT %d]%s Server Connection Failed\n",
+            ANSI_COLOR_RED, get_current_time_as_string(), ANSI_COLOR_RESET,
+            ANSI_COLOR_YELLOW, config->servers[elected_server].port_number, ANSI_COLOR_RESET);
+        return -1;
+    }
 
+    config->servers[elected_server].connection_count++;
+
+    printf("%s[%s]%s %s[PORT %d]%s Client connected. Connection count: %d\n",
+        ANSI_COLOR_RED, get_current_time_as_string(), ANSI_COLOR_RESET,
+        ANSI_COLOR_YELLOW, config->servers[elected_server].port_number, ANSI_COLOR_RESET,
+        config->servers[elected_server].connection_count);
+    
     while (*status == CONNECTED) {
         if ((read_size = recv(client_connection, client_message, MESSAGE_SIZE, 0)) > 0) {
             client_message[read_size] = '\0';
