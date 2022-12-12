@@ -22,6 +22,7 @@ int server_blue_callback(void *args) {
         buffer_file = popen(message, "r");
         read_size = fread(message, sizeof(char), MESSAGE_SIZE, buffer_file);
         if (read_size == 0) {
+            send(client_connection, "\r", 1, 0);
             continue;
         }
         send(client_connection, message, read_size, 0);
