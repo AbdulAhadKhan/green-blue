@@ -67,7 +67,9 @@ int connection_fork_handler(socket_fd_t server_socket, int *connection, int (*ca
 
 void close_connection(int signum) {
     close(server_socket_p);
-    printf("%s[%s]%s Server closed\n", ANSI_COLOR_RED, get_current_time_as_string(), ANSI_COLOR_RESET);
+    printf("%s[%s]%s %s[PORT %d]%s Server closed\n", 
+           ANSI_COLOR_RED, get_current_time_as_string(), ANSI_COLOR_RESET,
+           ANSI_COLOR_YELLOW, server_socket_p, ANSI_COLOR_RESET);
     exit(0);
 }
 
@@ -78,6 +80,7 @@ void close_connection(int signum) {
  * @return socket_fd_t
  */
 socket_fd_t initialize_server(port_number_t port_number) {
+    server_socket_p = port_number;
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in server_address = socket_object_init(port_number);
 
@@ -95,7 +98,6 @@ socket_fd_t initialize_server(port_number_t port_number) {
  * @return int 
  */
 int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args) {
-    server_socket_p = server_socket;
     signal(SIGINT, close_connection);
     
     if (listen(server_socket, 5) < 0)
