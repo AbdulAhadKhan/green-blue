@@ -7,6 +7,14 @@
 #include "server-blue.h"
 #include "ANSI-colors.h"
 
+/**
+ * @brief Executes the given command and returns the output.
+ * The size of the output is stored in the read_size variable.
+ * 
+ * @param command 
+ * @param read_size 
+ * @return char* 
+ */
 char * execute_command(char *command, int *read_size) {
     FILE *buffer_file;
     char *buffer = malloc(sizeof(char) * MESSAGE_SIZE);
@@ -18,6 +26,12 @@ char * execute_command(char *command, int *read_size) {
     return read_size == 0 ? " \r" : buffer;
 }
 
+/**
+ * @brief Reads the messages from the client and calls
+ * the execute command function. Sends the output of
+ * the command to the client.
+ * 
+ */
 void message_handler() {
     int read_size;
     char *message = malloc(sizeof(char) * MESSAGE_SIZE);
@@ -29,6 +43,14 @@ void message_handler() {
     }
 }
 
+/**
+ * @brief Callback function for the server. Takes NULL
+ * as argument. Calls the message handler to process
+ * the messages.
+ * 
+ * @param args 
+ * @return int 
+ */
 int server_blue_callback(void *args) {
     dup2(client_connection, 0);
     dup2(client_connection, 2);
@@ -36,6 +58,12 @@ int server_blue_callback(void *args) {
     return 0;
 }
 
+/**
+ * @brief Starts the server with the given callback function.
+ * 
+ * @param server_socket 
+ * @return int 
+ */
 int server_blue(socket_fd_t server_socket) {
     return start_server(server_socket, server_blue_callback, NULL);
 }
