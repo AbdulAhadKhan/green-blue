@@ -18,7 +18,7 @@ socket_fd_t server_socket_p;
  * 
  * @return int 
  */
-int log_connection(int *connection) {
+int log_connection(socket_fd_t *connection) {
     struct sockaddr_in client_address;
     socklen_t client_address_length = sizeof(client_address);
     
