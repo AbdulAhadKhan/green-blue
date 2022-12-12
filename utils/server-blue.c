@@ -7,27 +7,32 @@
 #include "server-blue.h"
 #include "ANSI-colors.h"
 
-int server_blue_callback(void *args) {
-    int status;
+char * execute_command(char *command) {
+    FILE *buffer_file;
+    char *buffer = malloc(sizeof(char) * MESSAGE_SIZE);
     int read_size;
-    char message[MESSAGE_SIZE];
 
-    dup2(client_connection, 0);
-    dup2(client_connection, 2);
+    buffer_file = popen(command, "r");
+    read_size = fread(buffer, sizeof(char), MESSAGE_SIZE, buffer_file);
+    buffer[read_size] = '\0';
+    
+    return read_size == 0 ? "\r\0" : buffer;
+}
+
+void message_handler() {
+    char *message = malloc(sizeof(char) * MESSAGE_SIZE);
 
     while (recv(client_connection, message, 0, MSG_PEEK | MSG_DONTWAIT) != 0) {
-        FILE *buffer_file;
-        read_size = strlen(fgets(message, MESSAGE_SIZE, stdin));
-        message[read_size] = '\0';
-        buffer_file = popen(message, "r");
-        read_size = fread(message, sizeof(char), MESSAGE_SIZE, buffer_file);
-        if (read_size == 0) {
-            send(client_connection, "\r", 1, 0);
-            continue;
-        }
-        send(client_connection, message, read_size, 0);
+        fgets(message, MESSAGE_SIZE, stdin);
+        message = execute_command(message);
+        send(client_connection, message, strlen(message), 0);
     }
+}
 
+int server_blue_callback(void *args) {
+    dup2(client_connection, 0);
+    dup2(client_connection, 2);
+    message_handler();    
     return 0;
 }
 
