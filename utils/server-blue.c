@@ -7,25 +7,25 @@
 #include "server-blue.h"
 #include "ANSI-colors.h"
 
-char * execute_command(char *command) {
+char * execute_command(char *command, int *read_size) {
     FILE *buffer_file;
     char *buffer = malloc(sizeof(char) * MESSAGE_SIZE);
-    int read_size;
 
     buffer_file = popen(command, "r");
-    read_size = fread(buffer, sizeof(char), MESSAGE_SIZE, buffer_file);
-    buffer[read_size] = '\0';
+    *read_size = fread(buffer, sizeof(char), MESSAGE_SIZE, buffer_file);
+    buffer[*read_size] = '\0';
     
-    return read_size == 0 ? "\r\0" : buffer;
+    return read_size == 0 ? " \r" : buffer;
 }
 
 void message_handler() {
+    int read_size;
     char *message = malloc(sizeof(char) * MESSAGE_SIZE);
 
     while (recv(client_connection, message, 0, MSG_PEEK | MSG_DONTWAIT) != 0) {
         fgets(message, MESSAGE_SIZE, stdin);
-        message = execute_command(message);
-        send(client_connection, message, strlen(message), 0);
+        message = execute_command(message, &read_size);
+        send(client_connection, message, read_size, 0);
     }
 }
 
