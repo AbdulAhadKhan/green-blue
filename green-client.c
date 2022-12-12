@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
+#include <signal.h>
 
 #include <pthread.h>
 #include <sys/mman.h>
@@ -13,6 +14,8 @@
 #include "utils/meta.h"
 #include "utils/ANSI-colors.h"
 #include "utils/socket-object.h"
+
+socket_fd_t server_socket;
 
 struct config  {
     int server_port;
@@ -54,44 +57,46 @@ void * check_connection_thread(void *args) {
     exit(0);
 }
 
-int green_client() {
-    char message[MESSAGE_SIZE];
-    char buffer[MESSAGE_SIZE];
-    int read_size;
-    int network_socket = socket(AF_INET, SOCK_STREAM, 0);
-    int protection = PROT_READ | PROT_WRITE;
-    int visibility = MAP_SHARED | MAP_ANONYMOUS;
+void quit(int sig) {
+    printf("%s[-]%s Disconnecting from server: %s:%d\n", 
+            ANSI_COLOR_RED, ANSI_COLOR_RESET, configs.address, configs.server_port);
+    close(server_socket);
+    exit(0);
+}
 
+void process_communication(socket_fd_t socket) {
+    int read_size;
+    char buffer[MESSAGE_SIZE];
+    
+    while (1) {
+        printf("Message: ");
+        fgets(buffer, sizeof(buffer), stdin);
+        if (strcmp(buffer, "quit\n") == 0) 
+            kill(getpid(), SIGINT);
+        send(socket, buffer, sizeof(buffer), 0);
+        read_size = recv(socket, &buffer, sizeof(buffer), 0);
+        buffer[read_size] = '\0';
+        printf("Server response:\n%s", buffer);
+    }
+}
+
+void green_client() {
     pthread_t thread;
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in server_address = socket_object_init(configs.address, configs.server_port);
 
-    if (connect(network_socket, (struct sockaddr *) &server_address, sizeof(server_address)) != -1) {
-        pthread_create(&thread, NULL, check_connection_thread, &network_socket);
+    if (connect(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) != -1) {
+        pthread_create(&thread, NULL, check_connection_thread, &server_socket);
         printf("%s[+]%s Connected to server: %s:%d\n", ANSI_COLOR_GREEN, ANSI_COLOR_RESET, configs.address, configs.server_port);
-        
-        while (1) {
-            printf("Message: ");
-            fgets(message, sizeof(message), stdin);
-            if (strcmp(message, "quit\n") == 0) {
-                printf("%s[-]%s Disconnecting from server: %s:%d\n", 
-                       ANSI_COLOR_RED, ANSI_COLOR_RESET, configs.address, configs.server_port);
-                close(network_socket);
-                exit(0);
-            }
-            send(network_socket, message, sizeof(message), 0);
-            read_size = recv(network_socket, &buffer, sizeof(buffer), 0);
-            buffer[read_size] = '\0';
-            printf("Server response: %s\n", buffer);
-        }
+        process_communication(server_socket);        
     }
 
     fprintf(stderr, "%s[-]%s Failed to connect to server: %s:%d\n", 
             ANSI_COLOR_RED, ANSI_COLOR_RESET, configs.address, configs.server_port);
-
-    return -1;
 }
 
 int main(int argc, char *argv[]) {
+    signal(SIGINT, quit);
     parse_arguments(argc, argv, &configs);
     green_client();
 }
