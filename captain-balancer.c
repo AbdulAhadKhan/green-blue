@@ -92,8 +92,7 @@ int start_blue_servers(struct config *config) {
         config->servers[i].socket = initialize_server(config->servers[i].port_number);
         config->servers[i].connection_count = 0;
         if (fork() == 0)
-            return config->servers[i].socket < 0 || \
-                   start_server(config->servers[i].socket, server_blues_callback, NULL) < 0 ? -1 : 0;
+            server_blue(config->servers[i].socket, config->servers[i].socket);
     }
 
     return 0;
