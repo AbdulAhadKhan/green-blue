@@ -27,5 +27,5 @@ int parse_arguments(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
     parse_arguments(argc, argv);
     socket_fd_t socket_fd = initialize_server(port_number);
-    server_blue(port_number, socket_fd);
+    server_blue(socket_fd);
 }

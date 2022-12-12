@@ -5,8 +5,6 @@
 #include "server-blue.h"
 #include "ANSI-colors.h"
 
-port_number_t port_number = 2000;
-
 int server_blue_callback(void *args) {
     int read_size;
     char message[MESSAGE_SIZE];
