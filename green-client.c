@@ -12,6 +12,7 @@
 
 #include "utils/meta.h"
 #include "utils/ANSI-colors.h"
+#include "utils/socket-object.h"
 
 struct config  {
     int server_port;
@@ -62,15 +63,12 @@ int green_client() {
     int visibility = MAP_SHARED | MAP_ANONYMOUS;
 
     pthread_t thread;
-    struct sockaddr_in server_address;
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr(configs.address);
-    server_address.sin_port = htons(configs.server_port);
-    server_address.sin_addr.s_addr = INADDR_ANY;
+    struct sockaddr_in server_address = socket_object_init(configs.address, configs.server_port);
 
     if (connect(network_socket, (struct sockaddr *) &server_address, sizeof(server_address)) != -1) {
         pthread_create(&thread, NULL, check_connection_thread, &network_socket);
         printf("%s[+]%s Connected to server: %s:%d\n", ANSI_COLOR_GREEN, ANSI_COLOR_RESET, configs.address, configs.server_port);
+        
         while (1) {
             printf("Message: ");
             fgets(message, sizeof(message), stdin);
