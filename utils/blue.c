@@ -48,7 +48,9 @@ int log_server_start(socket_fd_t server_socket) {
 }
 
 /**
- * @brief Handle the connection fork
+ * @brief Gets called every time a new connection is established.
+ * Since this is a forked process, it executes the callback function
+ * inside the child process and exits.
  * 
  * @param server_socket: socket file descriptor (socket_fd_t)
  * @param connection: connection file descriptor (int *)
@@ -65,6 +67,11 @@ int connection_fork_handler(socket_fd_t server_socket, int *connection, int (*ca
     exit(0);
 }
 
+/**
+ * @brief Close the server socket and exit.
+ * 
+ * @param signum 
+ */
 void close_connection(int signum) {
     close(server_socket_p);
     printf("%s[%s]%s %s[PORT %d]%s Server closed\n", 
@@ -74,7 +81,7 @@ void close_connection(int signum) {
 }
 
 /**
- * @brief Initialize the server
+ * @brief Initialize the server socket and bind it to the port number
  * 
  * @param port_number 
  * @return socket_fd_t
@@ -89,7 +96,8 @@ socket_fd_t initialize_server(port_number_t port_number) {
 }
 
 /**
- * @brief Start the server and listen for connections
+ * @brief Start the server and listen for connections.
+ * Every connection is handled in a fork.
  * 
  * @param server_socket: socket file descriptor (socket_fd_t)
  * @param callback: callback function (int (*)(void *))
