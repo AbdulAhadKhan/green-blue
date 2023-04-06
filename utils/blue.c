@@ -112,7 +112,7 @@ int start_server(socket_fd_t server_socket, int (*callback)(void *), void *args)
 socket_fd_t initialize_server(port_number_t port_number) {
     server_socket_p = port_number;
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in server_address = socket_object_init(port_number);
+    struct sockaddr_in server_address = socket_object_init(NULL, port_number);
 
     return bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == 0 ? \
         server_socket : -1;
